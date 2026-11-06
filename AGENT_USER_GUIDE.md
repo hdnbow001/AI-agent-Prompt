@@ -6,7 +6,7 @@
 >
 > 建立时间：2026-10-09 16:32（Asia/Shanghai）
 >
-> 最后更新：2026-11-06 11:33（Asia/Shanghai）
+> 最后更新：2026-11-06 13:27（Asia/Shanghai）
 
 ## 1. 目的
 
@@ -344,6 +344,57 @@ timing_trials/rcp_pipeline_explore_20260929/
 - 根目录会话 `vivado*.log/.jou` 和 `webtalk*.log/.jou` 通常可清理；
 - `runs/`、`gen/`、`srcs/`、IP/BD 生成目录只有在重建路径确认后才能批量清理；
 - `timing_trials/`、源码、约束和文档不属于普通清理对象。
+
+### 10.1 Tcl/MCP 执行综合与实现的输出路径
+
+Agent 通过 Tcl 或 MCP 驱动 Vivado 执行综合（synth）和实现（impl）时，输出路径必须按 Vivado GUI 工程的习惯布局，不得自选目录：
+
+- “当前活动工程目录”指 `smart_servo.xpr` 所在目录；综合和实现的运行目录必须位于该目录下的 `<project>.runs/`（本工程为 `smart_servo.runs/`），与 GUI 创建 run 的布局一致；
+- 实现运行的最下层目录统一命名为 `impl_XXXX`，`XXXX` 为该次运行的启动时间戳，格式固定为 `YYYYMMDD_HHMMSS`（Asia/Shanghai），例如 `smart_servo.runs/impl_20261106_132015/`；
+- 综合运行同样放在 `<project>.runs/` 下；如需时间戳目录，使用相同规则的 `synth_XXXX`，不得与实现目录混用；
+- DCP、报告、bit/ltx/xsa 等输出全部写入对应的 `impl_XXXX` / `synth_XXXX` 目录，不得散落到工程根目录、`docs/build/`、`scripts/`、临时目录或外部磁盘；
+- 每次运行必须新建时间戳目录，不得复用、覆盖或删除已有目录；需要清理时按本节其它条款先列出候选并取得用户确认；
+- 输出路径和验证证据按第 7 节分层登记到 `BASELINE.md` 和对应任务记录；生成目录仍受 `.gitignore` 约束。
+
+#### 标准目录布局
+
+`<project>` 指工程名（本工程为 `smart_servo`）。下列布局已按本工程工作区实际核对：
+
+```text
+<工程根>/                                  # 当前活动工程目录：<project>.xpr 所在处
+├─ <project>.xpr                           # 工程文件（受控输入，未经授权不得改写）
+├─ <project>.srcs/                         # 受控输入（版本控制对象）
+│  ├─ sources_1/
+│  │  ├─ bd/<bd名>/<bd名>.bd               # BD 源
+│  │  ├─ ip/<ip名>/<ip名>.xci              # IP 配置
+│  │  └─ <功能子目录>/*.v, *.sv            # RTL
+│  ├─ constrs_1/new/*.xdc                  # 约束
+│  └─ sim_1/<子目录>/*.sv                  # 仿真台
+├─ <project>.runs/                         # 全部综合/实现运行目录（生成物）
+│  ├─ synth_1/                             # 顶层综合 run
+│  ├─ <ip名>_synth_1/                      # 每个 IP 的 OOC 综合 run
+│  ├─ impl_1/                              # GUI 默认实现 run
+│  └─ impl_YYYYMMDD_HHMMSS/                # Tcl/MCP 每次实现新建的时间戳 run
+│     ├─ runme.log, runme.bat, runme.sh, ISEWrap.js, ISEWrap.sh, gen_run.xml, rundef.js
+│     ├─ top.dcp, top_opt.dcp, top_physopt.dcp, top_placed.dcp, top_routed.dcp
+│     ├─ top.bit, top.ltx, top.bin, top.mmi, top.hwdef        # Vivado 原生制品
+│     ├─ top.xsa                                              # 由本工程 Tcl 导出
+│     └─ top_timing_summary_routed.rpt, top_utilization_placed.rpt, top_drc_routed.rpt,
+│        top_route_status.rpt, top_bus_skew_routed.rpt,
+│        top_clock_utilization_routed.rpt, top_power_routed.rpt（同名 .rpx/.pb 为配套文件）
+├─ <project>.gen/sources_1/bd/<bd名>/…     # BD/IP 生成输出（生成物）
+├─ <project>.ip_user_files/{ip,bd}/…       # IP/BD 导出文件（生成物）
+├─ <project>.sim/<run名>/xsim.dir/…        # 仿真运行目录（生成物）
+├─ <project>.cache/                        # Vivado 缓存（生成物）
+└─ <project>.hw/<project>.lpr              # 硬件管理器工程（生成物）
+```
+
+布局约束：
+
+- `synth_1`、`impl_1` 是 GUI 默认 run 名称；Tcl/MCP 每次实现必须新建 `impl_YYYYMMDD_HHMMSS`，不得对 `impl_1` 执行 `reset_run` 后在原位覆盖；
+- 每个 `<ip名>_synth_1` 是 IP 的 OOC 运行目录，与顶层 run 同级，不得搬到别处或改名；
+- run 目录内的报告、检查点和制品都属于该 run 的输出；允许在 run 目录内使用导出命名（如 `impl_timing_summary.rpt`、`impl_utilization_hierarchical.rpt`），但不得写到 run 目录之外；
+- `<project>.runs/`、`.gen/`、`.sim/`、`.cache/`、`.hw/`、`.ip_user_files/` 由 `.gitignore` 排除，run 目录内的 bit/ltx/xsa 因此不被跟踪，不得用 `git add -f` 绕过；需要留存的制品按发布流程复制到用户批准的位置，并在 `BASELINE.md` 登记路径与 SHA-256。
 
 ## 11. 推荐Agent提示词模板
 
