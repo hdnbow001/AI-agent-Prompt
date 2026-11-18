@@ -6,7 +6,7 @@
 >
 > 建立时间：2026-10-09 16:32（Asia/Shanghai）
 >
-> 最后更新：2026-11-06 13:27（Asia/Shanghai）
+> 最后更新：2026-11-18 17:25（Asia/Shanghai）
 
 ## 1. 目的
 
@@ -54,13 +54,33 @@ new_project/
 | `AGENT_USER_GUIDE.md` | 开发人员使用两个 Agent 的授权和验收规则 |
 | `GOVERNANCE_TEMPLATE_MANIFEST.md` | 受控用户指南的版本、哈希和复用方法 |
 | `PROJECT.md` | 稳定的项目边界、目标和架构事实 |
-| `REQUIREMENTS.md` | 需求实现与变迁记录：需求基线、实现映射、验证证据与变更历史 |
+| `REQUIREMENTS.md` | 需求基线、实现映射、验证/验收状态和需求变迁记录 |
 | `BASELINE.md` | Git、工具和分层验证基线 |
 | `DECISIONS.md` | 仅记录用户已经批准的工程决定 |
 | `TASKS.md` | 任务状态、范围和验收条件 |
 | `HANDOFF.md` | 当前一次跨 Agent 或跨会话交接，不承担完整历史档案职责 |
 
 `HANDOFF.md` 应在任务暂停、Agent 切换、对话归档或重要阶段结束时更新。它必须指向源码、Git 状态和验证证据，不能只写“上一 Agent 已完成”。
+
+### 需求实现与变迁记录
+
+治理框架必须包含 `docs/REQUIREMENTS.md`。该文件用于建立“需求来源 → 已批准需求 → 实现位置 → 验证证据 → 用户验收”的可追溯链，并保留需求新增、修改、替代、延期和撤销的变迁记录。
+
+每条需求至少应包含：
+
+- 唯一且稳定的需求 ID、标题、来源、提出时间和当前版本；
+- 原始需求、当前有效表述、适用范围、约束和可执行验收条件；
+- 状态及状态时间戳，至少区分 `PROPOSED / APPROVED / IMPLEMENTED / VERIFIED / ACCEPTED / DEFERRED / SUPERSEDED / WITHDRAWN`；
+- 对应任务/决定、实现文件或接口、验证命令和证据路径；
+- 每次实质变更的时间、变更前后内容、原因、影响范围、批准人或批准依据，以及替代/被替代需求 ID。
+
+使用规则：
+
+1. `REQUIREMENTS.md` 记录“要实现什么、为什么变化以及如何追溯”，不替代 `PROJECT.md` 的稳定架构事实、`DECISIONS.md` 的批准决定、`TASKS.md` 的执行计划、`BASELINE.md` 的验证基线或详细设计文档。
+2. 新需求可以先标记为 `PROPOSED`；只有存在明确用户批准依据时才能标记为 `APPROVED`。Agent 不得自行批准需求，也不得自行把需求标记为 `ACCEPTED`。
+3. 需求变化不得静默改写旧内容。旧版本应保留在同一需求的变迁记录中；被替代、撤销或延期时必须记录原因和影响，不得删除历史记录来制造一致性。
+4. 功能代码、接口、寄存器、约束或验证目标发生需求驱动的实质修改时，相关 `TASKS.md` 条目和验证证据必须引用需求 ID；反向也应从需求条目定位到实现与证据。
+5. 聊天记录和 Agent 私有记忆只能作为需求线索，不能单独成为批准依据；正式记录前应核对用户批准、源码、Git、报告或其他可定位证据。
 
 ### 受控复用用户指南
 
@@ -78,12 +98,13 @@ Phase 0 按以下顺序执行：
 1. 确认唯一 Git 根目录和工具版本；
 2. 在首次生成工程前建立 `.gitignore`，区分源码、配置、生成物和正式制品；
 3. 建立 `AGENTS.md`、`CLAUDE.md` 和 `docs/` 骨架；
-4. `PROJECT.md` 只写已确认目标和边界，未知内容标记为“待确认”；同时建立 `REQUIREMENTS.md`，登记初始需求和验收条件；
-5. `BASELINE.md` 如实填写“未执行/未验证”，不得预先宣称通过；
-6. 在 `DECISIONS.md` 记录已批准的工具、构建、IP/BD、约束和制品策略；
-7. 在 `TASKS.md` 建立首个有修改范围和验收条件的任务；
-8. 首次成功验证后，把 Commit、命令、报告和未验证内容写入 `BASELINE.md`；
-9. 经开发人员审核后，可将治理骨架作为独立 Commit，与功能代码分开。
+4. `PROJECT.md` 只写已确认目标和边界，未知内容标记为“待确认”；
+5. 在 `REQUIREMENTS.md` 登记首批需求、来源、当前状态、验收条件和初始变迁记录；未经批准的内容标记为 `PROPOSED`；
+6. `BASELINE.md` 如实填写“未执行/未验证”，不得预先宣称通过；
+7. 在 `DECISIONS.md` 记录已批准的工具、构建、IP/BD、约束和制品策略；
+8. 在 `TASKS.md` 建立首个有修改范围、关联需求 ID 和验收条件的任务；
+9. 首次成功验证后，把 Commit、命令、报告和未验证内容写入 `BASELINE.md`，并从相应需求条目链接该证据；
+10. 经开发人员审核后，可将治理骨架作为独立 Commit，与功能代码分开。
 
 ### 新项目第一次交给任一 Agent 的推荐提示词
 
@@ -132,7 +153,8 @@ GOVERNANCE_TEMPLATE_MANIFEST.md 和 AGENT_USER_GUIDE.md，然后建立：
 8. 如已存在同名规则或文档，先保留并检查，不得直接覆盖；采用
    最小修改或列出冲突等待用户决定。
 9. 全新项目不要创建 docs/history/；只有迁入旧资料时才建立历史目录。
-10. 不执行 Git Commit、Reset、Clean 或删除操作。
+10. docs/REQUIREMENTS.md 必须采用稳定需求 ID，记录需求来源、批准状态、实现映射、验证证据和需求变迁；不得用静默改写覆盖历史需求。
+11. 不执行 Git Commit、Reset、Clean 或删除操作。
 
 完成后输出：
 - 新增或修改的文件；
@@ -227,7 +249,7 @@ GOVERNANCE_TEMPLATE_MANIFEST.md 和 AGENT_USER_GUIDE.md，然后建立：
 ## 6. 标准工作流程
 
 ```text
-调查 → 计划 → 用户审批 → 实施 → 验证 → 交接 → 用户验收
+需求登记/变更 → 调查 → 计划 → 用户审批 → 实施 → 验证 → 交接 → 用户验收
 ```
 
 任务状态采用：
@@ -242,18 +264,6 @@ TODO → IN_PROGRESS → IMPLEMENTED → VERIFIED → ACCEPTED
 - `BLOCKED`：无法在当前权限或条件下继续。
 
 Agent 不能自行把 `VERIFIED` 改为 `ACCEPTED`。
-
-### 6.1 长任务的开始提示与进度报告
-
-预计耗时较长、或需要多轮工具调用的任务（综合、Implementation、整轮 VIO/ILA 采集、参数扫描、批量数据分析等）必须：
-
-1. **开始前先提示**：说明将要执行什么、预计耗时、完成后交付哪些证据，让开发人员能在开跑前纠正方向或叫停。
-2. **执行中报告进度**：按 `第 x/y 步：<当前步骤>` 的形式逐步报告；步骤划分必须与真实执行脚本的结构一致，不得虚报步数，不得跳过失败步骤。
-3. **禁止静默，防止假死**：长任务执行期间，Agent 必须持续提供阶段性可见输出，不得让对话长时间没有任何报告。阶段边界、进度变化和失败必须立即报告；即使没有阶段变化，最长静默间隔也不得超过 3 分钟，并至少说明：当前正在执行的步骤、最近一条工具或 Vivado 输出、已等待或已运行时长、下一个预期阶段或完成标志。不得只用“正在运行”一句空话代替上述信息，也不得以沉默表示正常。若单个工具调用会阻塞超过该间隔，应改用后台任务并周期读取日志或状态文件后报告，不得用一次无法观察的长阻塞调用代替进度报告。本条对 Codex 和 Claude Code 同等适用。
-4. **失败即报**：某一步失败时就在该步报告原因和已有证据，不要等整轮跑完再报。
-5. **不替代结论**：进度报告不能代替最终回复，长任务结束后仍按"结果 / 证据 / 待决"三部分给出结论。
-
-快速查询、单次读取、小范围修改等短任务不必逐步报告。
 
 ## 7. 如何理解验证结果
 
@@ -294,19 +304,7 @@ timing_trials/rcp_pipeline_explore_20260929/
 - `docs/agents/claude/`：Claude Code 私有阅读记忆和草稿；
 - `docs/history/`：规范化前的历史资料。
 
-历史资料和 Agent 私有笔记不能直接覆盖当前源码和验证证据。需要成为正式结论的内容，应先核实，再进入 `PROJECT.md`、`BASELINE.md` 或经用户批准后进入 `DECISIONS.md`。
-
-### 需求实现与变迁记录
-
-框架体系的共享工程文档必须包含 `docs/REQUIREMENTS.md`（需求实现与变迁记录）。新项目在 Phase 0 建立；既有工程规范化时补齐。该文档统一追踪需求、实现与验证，不能以聊天历史或任务、决策、交接文档替代。
-
-- 每项需求使用稳定且唯一的需求 ID，记录需求描述、来源、提出时间、版本、批准状态、适用范围及可检查的验收条件；未知内容标记为“待确认”。
-- 实现记录关联需求 ID、任务 ID、实际源码或配置路径、相关 Commit（如有）、实现状态、验证命令、报告路径和结果。静态检查、仿真、综合、Implementation、时序和板测按实际证据分别登记，未执行项如实标明。
-- 需求新增、修改、撤销或被替代时，追加变迁记录，包含精确到分钟的时间戳、变更前后内容、原因、来源、批准人及批准依据、受影响模块和任务、兼容性影响及需重新执行的验证。不得覆盖或删除旧记录，不得复用已撤销的需求 ID。
-- 待批准变更只能记为提议；用户批准后才可更新当前需求基线，并关联 `DECISIONS.md` 中的批准决定。实现完成、验证通过和用户验收须分别记录，Agent 不得代替用户确认验收。
-- 任务实施、需求变更和交接时，核对并更新需求映射；`TASKS.md` 引用相关需求 ID，`HANDOFF.md` 指向对应需求及变迁记录。未知历史标为“待核实”，不得补造批准或验证证据。
-
-建议包含“当前需求清单”“实现与验证映射”“需求变迁历史”三部分，正文按本工程时间戳规则记录更新时间。
+历史资料和 Agent 私有笔记不能直接覆盖当前源码和验证证据。需要成为正式结论的内容，应先核实，再进入 `PROJECT.md`、`REQUIREMENTS.md`、`BASELINE.md` 或经用户批准后进入 `DECISIONS.md`。其中需求批准状态仍必须有可定位的用户批准依据。
 
 ### Agent 之间传递工程状态和记忆
 
@@ -345,56 +343,17 @@ timing_trials/rcp_pipeline_explore_20260929/
 - `runs/`、`gen/`、`srcs/`、IP/BD 生成目录只有在重建路径确认后才能批量清理；
 - `timing_trials/`、源码、约束和文档不属于普通清理对象。
 
-### 10.1 Tcl/MCP 执行综合与实现的输出路径
+### 10.1 synth/impl输出目录时间戳规范
 
-Agent 通过 Tcl 或 MCP 驱动 Vivado 执行综合（synth）和实现（impl）时，输出路径必须按 Vivado GUI 工程的习惯布局，不得自选目录：
+> 更新时间：2026-11-18 17:21（Asia/Shanghai）
 
-- “当前活动工程目录”指 `smart_servo.xpr` 所在目录；综合和实现的运行目录必须位于该目录下的 `<project>.runs/`（本工程为 `smart_servo.runs/`），与 GUI 创建 run 的布局一致；
-- 实现运行的最下层目录统一命名为 `impl_XXXX`，`XXXX` 为该次运行的启动时间戳，格式固定为 `YYYYMMDD_HHMMSS`（Asia/Shanghai），例如 `smart_servo.runs/impl_20261106_132015/`；
-- 综合运行同样放在 `<project>.runs/` 下；如需时间戳目录，使用相同规则的 `synth_XXXX`，不得与实现目录混用；
-- DCP、报告、bit/ltx/xsa 等输出全部写入对应的 `impl_XXXX` / `synth_XXXX` 目录，不得散落到工程根目录、`docs/build/`、`scripts/`、临时目录或外部磁盘；
-- 每次运行必须新建时间戳目录，不得复用、覆盖或删除已有目录；需要清理时按本节其它条款先列出候选并取得用户确认；
-- 输出路径和验证证据按第 7 节分层登记到 `BASELINE.md` 和对应任务记录；生成目录仍受 `.gitignore` 约束。
-
-#### 标准目录布局
-
-`<project>` 指工程名（本工程为 `smart_servo`）。下列布局已按本工程工作区实际核对：
-
-```text
-<工程根>/                                  # 当前活动工程目录：<project>.xpr 所在处
-├─ <project>.xpr                           # 工程文件（受控输入，未经授权不得改写）
-├─ <project>.srcs/                         # 受控输入（版本控制对象）
-│  ├─ sources_1/
-│  │  ├─ bd/<bd名>/<bd名>.bd               # BD 源
-│  │  ├─ ip/<ip名>/<ip名>.xci              # IP 配置
-│  │  └─ <功能子目录>/*.v, *.sv            # RTL
-│  ├─ constrs_1/new/*.xdc                  # 约束
-│  └─ sim_1/<子目录>/*.sv                  # 仿真台
-├─ <project>.runs/                         # 全部综合/实现运行目录（生成物）
-│  ├─ synth_1/                             # 顶层综合 run
-│  ├─ <ip名>_synth_1/                      # 每个 IP 的 OOC 综合 run
-│  ├─ impl_1/                              # GUI 默认实现 run
-│  └─ impl_YYYYMMDD_HHMMSS/                # Tcl/MCP 每次实现新建的时间戳 run
-│     ├─ runme.log, runme.bat, runme.sh, ISEWrap.js, ISEWrap.sh, gen_run.xml, rundef.js
-│     ├─ top.dcp, top_opt.dcp, top_physopt.dcp, top_placed.dcp, top_routed.dcp
-│     ├─ top.bit, top.ltx, top.bin, top.mmi, top.hwdef        # Vivado 原生制品
-│     ├─ top.xsa                                              # 由本工程 Tcl 导出
-│     └─ top_timing_summary_routed.rpt, top_utilization_placed.rpt, top_drc_routed.rpt,
-│        top_route_status.rpt, top_bus_skew_routed.rpt,
-│        top_clock_utilization_routed.rpt, top_power_routed.rpt（同名 .rpx/.pb 为配套文件）
-├─ <project>.gen/sources_1/bd/<bd名>/…     # BD/IP 生成输出（生成物）
-├─ <project>.ip_user_files/{ip,bd}/…       # IP/BD 导出文件（生成物）
-├─ <project>.sim/<run名>/xsim.dir/…        # 仿真运行目录（生成物）
-├─ <project>.cache/                        # Vivado 缓存（生成物）
-└─ <project>.hw/<project>.lpr              # 硬件管理器工程（生成物）
-```
-
-布局约束：
-
-- `synth_1`、`impl_1` 是 GUI 默认 run 名称；Tcl/MCP 每次实现必须新建 `impl_YYYYMMDD_HHMMSS`，不得对 `impl_1` 执行 `reset_run` 后在原位覆盖；
-- 每个 `<ip名>_synth_1` 是 IP 的 OOC 运行目录，与顶层 run 同级，不得搬到别处或改名；
-- run 目录内的报告、检查点和制品都属于该 run 的输出；允许在 run 目录内使用导出命名（如 `impl_timing_summary.rpt`、`impl_utilization_hierarchical.rpt`），但不得写到 run 目录之外；
-- `<project>.runs/`、`.gen/`、`.sim/`、`.cache/`、`.hw/`、`.ip_user_files/` 由 `.gitignore` 排除，run 目录内的 bit/ltx/xsa 因此不被跟踪，不得用 `git add -f` 绕过；需要留存的制品按发布流程复制到用户批准的位置，并在 `BASELINE.md` 登记路径与 SHA-256。
+- 每轮综合/实现的**实际输出目录必须包含时间戳**，统一使用`YYYYMMDD_HHmmss`作为构建标识；同一轮synth/impl使用同一标识。标识应取该轮构建启动时间，并在记录中说明来源。
+- 保留原生逻辑run名`synth_1`、`impl_1`及制品原名`top.bit`、`top.ltx`、`top.xsa`。可使用`<工程>.runs/synth_1_<时间戳>/`和`<工程>.runs/impl_1_<时间戳>/`等经过工具验证的目录组织，不以更改逻辑run名制造临时run。
+- 时间戳必须体现在真实产物目录及XPR原生run路径中；仅给备份/复制/导出目录添加时间戳，不算实际run目录符合本规范。不能用文件搬运冒充重新执行综合、布局布线或时序收敛。
+- 启动前回读并记录`get_property DIRECTORY [get_runs synth_1]`及`get_property DIRECTORY [get_runs impl_1]`，核实路径归属、同轮标识、旧成果保护及受控入口/钩子的路径检查。使用当前Vivado版本支持的工程记录方式；属性只读时不得强行set_property。
+- 每轮新构建使用新标识，避免覆盖以前构建。历史制品及原始报告保持可追溯；未经明确要求，不批量追溯重命名旧目录。
+- 用户明确要求给已完成的本轮结果补时间戳时，先备份并逐文件核验，再迁移原生run目录、同步XPR及必要的路径检查。之后重新打开当前XPR的run，核实状态、实际目录、检查点时序、原名制品SHA-256及BIT/LTX/XSA一致性。记录“目录迁移”与“重新构建”的区别，不改写原始日志中的历史路径来伪造新构建。
+- 该规范不单独授权RTL、接口、时钟、约束、IP或BD功能变更；实际目录迁移须在用户授权范围内保护既有未提交修改、历史制品和回退证据。
 
 ## 11. 推荐Agent提示词模板
 
@@ -526,13 +485,14 @@ project_root/
    - Claude Code 默认主责代码阅读和文档，修改代码需具体授权。
 2. 建立 docs/ 共享骨架和 docs/agents/ 私有工作区；若用户提供受控治理模板来源，必须原样复制 `AGENT_USER_GUIDE.md` 和模板清单并校验哈希，不得自由改写。
 3. 将仍有效且已核实的事实写入共享文档，不复制成两套 Agent 文档。
-4. 将旧文档和旧 Agent 记忆原样或最小改动迁入 docs/history/；
+4. 建立或规范化 `REQUIREMENTS.md`：为当前需求分配稳定 ID，保留需求来源、批准依据、实现/验证映射和变迁历史；无法确认批准状态时标记 `PROPOSED` 或“待确认”，不得补造历史。
+5. 将旧文档和旧 Agent 记忆原样或最小改动迁入 docs/history/；
    不把历史描述自动提升为当前结论。
-5. 更新当前有效的索引、规则和路径引用；保留纯历史叙述的时代语境。
-6. 对移动操作使用精确路径，移动前检查目标冲突，移动后核对文件数量。
-7. 不删除无法分类的内容；放入待决定清单，由用户处理。
-8. 不修改功能代码或工程行为，除非用户另行明确授权。
-9. 不执行 Git Commit，除非用户在审核差异后明确要求。
+6. 更新当前有效的索引、规则和路径引用；保留纯历史叙述的时代语境。
+7. 对移动操作使用精确路径，移动前检查目标冲突，移动后核对文件数量。
+8. 不删除无法分类的内容；放入待决定清单，由用户处理。
+9. 不修改功能代码或工程行为，除非用户另行明确授权。
+10. 不执行 Git Commit，除非用户在审核差异后明确要求。
 
 ## 5. 权威顺序
 
@@ -567,7 +527,7 @@ project_root/
 
 请先核对实际源码、Git 状态、共享文档和验证报告，然后更新：
 - docs/TASKS.md：当前任务状态和验收条件；
-- docs/REQUIREMENTS.md：相关需求的实现映射、验证状态和变迁记录；
+- docs/REQUIREMENTS.md：仅在需求、实现映射、验证/验收状态或变迁记录发生变化时更新；
 - docs/BASELINE.md：仅在产生新验证证据时更新；
 - docs/DECISIONS.md：仅写入用户已经批准的决定；
 - docs/HANDOFF.md：写入本次交接。
@@ -665,8 +625,8 @@ HANDOFF.md 必须包含：
 - Agent 实际执行了哪些验证；
 - 是否把仿真、综合、时序和板测混为一谈；
 - 是否存在新的未跟踪文件或生成物；
-- `REQUIREMENTS.md` 是否关联需求、实现与验证证据，变迁是否保留历史和批准依据；
 - `TASKS.md`、`HANDOFF.md`、`BASELINE.md` 是否需要更新；
+- `REQUIREMENTS.md` 是否已记录需求 ID、批准依据、实现/验证映射和本次需求变迁；
 - 是否满足验收条件，能否标记为 `ACCEPTED`；
 - 是否由开发人员决定并执行 Commit。
 
@@ -736,3 +696,11 @@ HANDOFF.md 必须包含：
 参考实现与逐条踩坑记录见接入项目的 `docs/agents/claude/tools/vivado_hw/`（会话脚本、服务脚本、统计 proc）与对应专题记忆。换项目时只改探针位域、LTX 路径和 VIO 探针名，其余结构不变。
 
 最终责任边界：Agent 负责调查、计划、实施、验证和如实交接；开发人员负责授权、工程判断、验收和版本发布决定。
+
+## 16. RTL代码可读性与一行一条语句
+
+> 更新时间：2026-11-18 17:25（Asia/Shanghai）
+
+- 手工维护的RTL、头文件和测试平台，一行只能写一条独立功能语句；禁止一行多句，不得把多条赋值、声明或控制动作压缩在同一行。
+- 控制块、条件分支和端口映射应展开书写，使用清晰缩进体现逻辑层级，充分考虑人类阅读、逐行审查和后续维护的习惯，不以减少行数为目标。
+- 新增或修改内容必须遵守本条及工程RTL_CODING_RULES.md；不因此批量重排无关历史源码或手工改写工具生成的HDL。
